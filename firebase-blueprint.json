@@ -1,0 +1,67 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile for patients, doctors, and admins.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "Full name" },
+        "email": { "type": "string", "format": "email", "description": "Email address" },
+        "role": { "type": "string", "enum": ["patient", "doctor", "admin"], "description": "User role" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation date" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
+    "Doctor": {
+      "title": "Doctor",
+      "description": "Doctor profile with specialization and availability.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User UID" },
+        "specialization": { "type": "string", "description": "Medical specialization" },
+        "experience": { "type": "number", "description": "Years of experience" },
+        "fees": { "type": "number", "description": "Consultation fees" },
+        "availability": { "type": "object", "description": "Availability schedule" },
+        "isVerified": { "type": "boolean", "description": "Verification status by admin" },
+        "rating": { "type": "number", "description": "Average rating" },
+        "bio": { "type": "string", "description": "Doctor biography" }
+      },
+      "required": ["uid", "specialization", "experience", "fees"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Consultation booking between patient and doctor.",
+      "type": "object",
+      "properties": {
+        "patientId": { "type": "string", "description": "Patient UID" },
+        "doctorId": { "type": "string", "description": "Doctor UID" },
+        "date": { "type": "string", "format": "date-time", "description": "Appointment date and time" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected", "completed", "cancelled"], "description": "Booking status" },
+        "paymentStatus": { "type": "string", "enum": ["pending", "paid"], "description": "Payment status" },
+        "meetingUrl": { "type": "string", "description": "Video consultation link" }
+      },
+      "required": ["patientId", "doctorId", "date", "status"]
+    },
+    "Prescription": {
+      "title": "Prescription",
+      "description": "Medical prescription issued by a doctor.",
+      "type": "object",
+      "properties": {
+        "appointmentId": { "type": "string", "description": "Related appointment UID" },
+        "patientId": { "type": "string", "description": "Patient UID" },
+        "doctorId": { "type": "string", "description": "Doctor UID" },
+        "medicines": { "type": "array", "items": { "type": "string" }, "description": "List of medicines" },
+        "notes": { "type": "string", "description": "Doctor's notes" },
+        "date": { "type": "string", "format": "date-time", "description": "Prescription date" }
+      },
+      "required": ["appointmentId", "patientId", "doctorId", "medicines"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}": { "schema": "User", "description": "User profiles" },
+    "/doctors/{uid}": { "schema": "Doctor", "description": "Doctor details" },
+    "/appointments/{appointmentId}": { "schema": "Appointment", "description": "Appointment records" },
+    "/prescriptions/{prescriptionId}": { "schema": "Prescription", "description": "Prescription records" }
+  }
+}

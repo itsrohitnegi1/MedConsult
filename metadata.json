@@ -1,0 +1,5 @@
+{
+  "name": "MedConsult - Telemedicine Platform",
+  "description": "A comprehensive doctor consultation platform with patient booking, doctor dashboards, and video consultations.",
+  "requestFramePermissions": ["camera", "microphone"]
+}

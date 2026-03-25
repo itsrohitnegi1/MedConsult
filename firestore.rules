@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    // Collection: users
+    // Fields: uid, name, email, role, createdAt
+    //
+    // Collection: doctors
+    // Fields: uid, specialization, experience, fees, availability, isVerified, rating, bio
+    //
+    // Collection: appointments
+    // Fields: patientId, doctorId, date, status, paymentStatus, meetingUrl
+    //
+    // Collection: prescriptions
+    // Fields: appointmentId, patientId, doctorId, medicines, notes, date
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "negirohit9147@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isDoctor() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor';
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'name', 'email', 'role']) &&
+             data.uid is string && data.name is string && data.email is string &&
+             data.role in ['patient', 'doctor', 'admin'];
+    }
+
+    function isValidDoctor(data) {
+      return data.keys().hasAll(['uid', 'specialization', 'experience', 'fees']) &&
+             data.uid is string && data.specialization is string &&
+             data.experience is number && data.fees is number;
+    }
+
+    function isValidAppointment(data) {
+      return data.keys().hasAll(['patientId', 'doctorId', 'date', 'status']) &&
+             data.patientId is string && data.doctorId is string &&
+             data.status in ['pending', 'accepted', 'rejected', 'completed', 'cancelled'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{uid} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(uid) && isValidUser(request.resource.data);
+      allow update: if (isOwner(uid) && request.resource.data.role == resource.data.role) || isAdmin();
+    }
+
+    match /doctors/{uid} {
+      allow read: if true; // Publicly viewable doctor profiles
+      allow create: if isOwner(uid) && isValidDoctor(request.resource.data);
+      allow update: if isOwner(uid) || isAdmin();
+    }
+
+    match /appointments/{appointmentId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.patientId || 
+        request.auth.uid == resource.data.doctorId || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.patientId && isValidAppointment(request.resource.data);
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.patientId || 
+        request.auth.uid == resource.data.doctorId || 
+        isAdmin()
+      );
+    }
+
+    match /prescriptions/{prescriptionId} {
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.patientId || 
+        request.auth.uid == resource.data.doctorId || 
+        isAdmin()
+      );
+      allow create: if isDoctor() && request.auth.uid == request.resource.data.doctorId;
+      allow update: if isDoctor() && request.auth.uid == resource.data.doctorId;
+    }
+  }
+}
